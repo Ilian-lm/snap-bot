@@ -39,12 +39,23 @@ def still_bookable(d):
 
 def read_calendar(page):
     """Ouvre Snap, règle Paris -> Londres, ouvre le calendrier, renvoie {date: dispo?}."""
-    page.goto(SNAP_URL, wait_until="domcontentloaded", timeout=60000)
+    resp = page.goto(SNAP_URL, wait_until="domcontentloaded", timeout=60000)
+    print("HTTP", resp.status if resp else None, flush=True)
+    try:
+        page.wait_for_load_state("networkidle", timeout=30000)
+    except Exception:
+        pass
     try:
         page.get_by_role("button", name="Continue with necessary cookies only").click(timeout=8000)
     except Exception:
         pass
     dest = page.get_by_placeholder("To")
+    try:
+        dest.wait_for(state="visible", timeout=45000)
+    except Exception:
+        body = page.inner_text("body")[:400].replace("\n", " ") if page.locator("body").count() else ""
+        print("DIAG url:", page.url, "| title:", page.title(), "| body:", body, flush=True)
+        raise
     dest.click()
     page.wait_for_timeout(800)
     page.keyboard.press("Control+A")
