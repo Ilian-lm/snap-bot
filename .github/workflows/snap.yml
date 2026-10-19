@@ -1,0 +1,30 @@
+name: Snap bot
+
+on:
+  workflow_dispatch:          # bouton "Run workflow" pour lancer tout de suite
+  schedule:
+    - cron: "*/30 * * * *"    # relance toutes les 30 min : le nouveau run remplace l'ancien, pas de trou
+
+concurrency:
+  group: snap-bot
+  cancel-in-progress: true
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install playwright requests && python -m playwright install --with-deps chromium
+      - run: python snap_bot.py
+        env:
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshots
+          path: "*.png"
+          if-no-files-found: ignore
